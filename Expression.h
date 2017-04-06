@@ -166,12 +166,11 @@ class Equation
 {
 public:
 	Equation(string org_strInput);
-	void Solve();
-	void Simplify();
+	string Solve();
+	string Simplify();
 	string String();
-	void Differentiate();
-	void Integrate();
-	string strValue;
+	//void Differentiate();
+	//void Integrate();
 	//void Extrema();
 	//Bitmap Graph();
 	//double NumericalDerivative(double org_dblPoint);
@@ -180,7 +179,8 @@ public:
 	//void Expand();
 	//double Limit(double org_dblPoint);
 
-protected:
+private:
+	string strValue;
 	vector<EquationElement*> arrStacks[3];
 	Side enuSide;
 	bool booTwoSided;
@@ -198,43 +198,43 @@ protected:
 //Constructor performing initial operations on equation
 Equation::Equation(string org_strInput)
 {
-	this->enuSide = Side::UNINITIALIZED;
+	enuSide = Side::UNINITIALIZED;
 
-	this->strValue = org_strInput;
+	strValue = org_strInput;
 
-	Optimize(this->strValue);
+	Optimize(strValue);
 
-	this->FillStack();
+	FillStack();
 
-	this->IdentifyVariables();
+	IdentifyVariables();
 
-	this->IdentifyEquationType();
+	IdentifyEquationType();
 
-	this->GenerateString();
+	GenerateString();
 }
 
 //Locates side of equation with variables
 void Equation::IdentifyVariables()
 {
-	this->intVariableFrequency = 0;
+	intVariableFrequency = 0;
 	for (int intStackIndex = 0; intStackIndex < 3; intStackIndex++)
 	{
-		for (int i = 0; i < (int)this->arrStacks[intStackIndex].size(); i++)
+		for (int i = 0; i < (int)arrStacks[intStackIndex].size(); i++)
 		{
-			if (this->arrStacks[intStackIndex][i]->strValue.length() == 1 && this->arrStacks[intStackIndex][i]->strValue.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") == -1)
+			if (arrStacks[intStackIndex][i]->strValue.length() == 1 && arrStacks[intStackIndex][i]->strValue.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") == -1)
 			{
-				this->intVariableFrequency++;
-				this->arrStacks[intStackIndex][i]->chrVariable = this->arrStacks[intStackIndex][i]->strValue[0];
+				intVariableFrequency++;
+				arrStacks[intStackIndex][i]->chrVariable = arrStacks[intStackIndex][i]->strValue[0];
 				switch (intStackIndex)
 				{
 				case STACK:
-					this->enuSide = Side::BOTH;
+					enuSide = Side::BOTH;
 					break;
 				case LEFT_STACK:
-					this->enuSide = Side::LEFT;
+					enuSide = Side::LEFT;
 					break;
 				case RIGHT_STACK:
-					this->enuSide = (this->enuSide == Side::LEFT) ? Side::BOTH : Side::RIGHT;
+					enuSide = (enuSide == Side::LEFT) ? Side::BOTH : Side::RIGHT;
 					break;
 				}
 			}
@@ -246,86 +246,86 @@ void Equation::IdentifyVariables()
 //Determines equation type
 void Equation::IdentifyEquationType()
 {
-	this->vecEquationTypes.clear();
+	vecEquationTypes.clear();
 	for (int intStackIndex = 0; intStackIndex < 3; intStackIndex++)
 	{
-		for (int i = 0; i < (int)this->arrStacks[intStackIndex].size(); i++)
+		for (int i = 0; i < (int)arrStacks[intStackIndex].size(); i++)
 		{
-			switch (this->arrStacks[intStackIndex][i]->intFunction)
+			switch (arrStacks[intStackIndex][i]->intFunction)
 			{
 			case ROOT:
 				//Radical
-				for (int j = 0; j <= (int)this->vecEquationTypes.size(); j++)
-					if (j == 0 || this->vecEquationTypes[j] != Type::RADICAL)
+				for (int j = 0; j <= (int)vecEquationTypes.size(); j++)
+					if (j == 0 || vecEquationTypes[j] != Type::RADICAL)
 					{
-						this->vecEquationTypes.push_back(Type::RADICAL);
+						vecEquationTypes.push_back(Type::RADICAL);
 						break;
 					}
 				break;
 			case LOG: case LN: case LOG10:
 				//Logarithmic
-				for (int j = 0; j <= (int)this->vecEquationTypes.size(); j++)
-					if (j == 0 || this->vecEquationTypes[j] != Type::LOGARITHMIC)
+				for (int j = 0; j <= (int)vecEquationTypes.size(); j++)
+					if (j == 0 || vecEquationTypes[j] != Type::LOGARITHMIC)
 					{
-						this->vecEquationTypes.push_back(Type::LOGARITHMIC);
+						vecEquationTypes.push_back(Type::LOGARITHMIC);
 						break;
 					}
 				break;
 			case SIN: case COS: case TAN: case CSC: case SEC: case COT: case ASIN: case ACOS: case ATAN: case ACSC: case ASEC: case ACOT:
 				//Trigonometric
-				for (int j = 0; j <= (int)this->vecEquationTypes.size(); j++)
-					if (j == 0 || this->vecEquationTypes[j] != Type::TRIGONOMETRIC)
+				for (int j = 0; j <= (int)vecEquationTypes.size(); j++)
+					if (j == 0 || vecEquationTypes[j] != Type::TRIGONOMETRIC)
 					{
-						this->vecEquationTypes.push_back(Type::TRIGONOMETRIC);
+						vecEquationTypes.push_back(Type::TRIGONOMETRIC);
 						break;
 					}
 				break;
 			case ABS:
 				//Absolute Value
-				for (int j = 0; j <= (int)this->vecEquationTypes.size(); j++)
-					if (j == 0 || this->vecEquationTypes[j] != Type::ABSOLUTE_VALUE)
+				for (int j = 0; j <= (int)vecEquationTypes.size(); j++)
+					if (j == 0 || vecEquationTypes[j] != Type::ABSOLUTE_VALUE)
 					{
-						this->vecEquationTypes.push_back(Type::ABSOLUTE_VALUE);
+						vecEquationTypes.push_back(Type::ABSOLUTE_VALUE);
 						break;
 					}
 				break;
 			}
 			//Exponential
-			if (this->arrStacks[intStackIndex][i]->chrOperator == '^' && FindVariableInNode(1, i) != -1)
-				for (int j = 0; j <= (int)this->vecEquationTypes.size(); j++)
-					if (j == 0 || this->vecEquationTypes[j] != Type::EXPONENTIAL)
+			if (arrStacks[intStackIndex][i]->chrOperator == '^' && FindVariableInNode(1, i) != -1)
+				for (int j = 0; j <= (int)vecEquationTypes.size(); j++)
+					if (j == 0 || vecEquationTypes[j] != Type::EXPONENTIAL)
 					{
-						this->vecEquationTypes.push_back(Type::EXPONENTIAL);
+						vecEquationTypes.push_back(Type::EXPONENTIAL);
 						break;
 					}
 			//Rational
-			if (this->arrStacks[intStackIndex][i]->chrOperator == '/' && FindVariableInNode(1, i) != -1)
-				for (int j = 0; j <= (int)this->vecEquationTypes.size(); j++)
-					if (j == 0 || this->vecEquationTypes[j] != Type::RATIONAL)
+			if (arrStacks[intStackIndex][i]->chrOperator == '/' && FindVariableInNode(1, i) != -1)
+				for (int j = 0; j <= (int)vecEquationTypes.size(); j++)
+					if (j == 0 || vecEquationTypes[j] != Type::RATIONAL)
 					{
-						this->vecEquationTypes.push_back(Type::RATIONAL);
+						vecEquationTypes.push_back(Type::RATIONAL);
 						break;
 					}
 		}
 	}
 	//If there are no special functions, the equation is polynomial
-	if (this->vecEquationTypes.size() == 0)
-		this->vecEquationTypes.push_back(Type::POLYNOMIAL);
+	if (vecEquationTypes.size() == 0)
+		vecEquationTypes.push_back(Type::POLYNOMIAL);
 }
 
 //Performs operators to operands wherever possible
-void Equation::Simplify()
+string Equation::Simplify()
 {
 	for (int intStackIndex = 0; intStackIndex < 3; intStackIndex++)
 	{
-		for (int i = (int)this->arrStacks[intStackIndex].size() - 1; i >= 0; i--)
+		for (int i = (int)arrStacks[intStackIndex].size() - 1; i >= 0; i--)
 		{
-			if (this->arrStacks[intStackIndex][i]->chrOperator != 0 && this->arrStacks[intStackIndex][i + 1]->chrOperator == 0 && this->arrStacks[intStackIndex][i + 1]->chrVariable == 0 && this->arrStacks[intStackIndex][i + 2]->chrOperator == 0 && this->arrStacks[intStackIndex][i + 2]->chrVariable == 0)
+			if (arrStacks[intStackIndex][i]->chrOperator != 0 && arrStacks[intStackIndex][i + 1]->chrOperator == 0 && arrStacks[intStackIndex][i + 1]->chrVariable == 0 && arrStacks[intStackIndex][i + 2]->chrOperator == 0 && arrStacks[intStackIndex][i + 2]->chrVariable == 0)
 			{
 				double num1, num2, answer;
-				stringstream(this->arrStacks[intStackIndex][i + 2]->strValue) >> num1;
-				stringstream(this->arrStacks[intStackIndex][i + 1]->strValue) >> num2;
-				switch (this->arrStacks[intStackIndex][i]->chrOperator)
+				stringstream(arrStacks[intStackIndex][i + 2]->strValue) >> num1;
+				stringstream(arrStacks[intStackIndex][i + 1]->strValue) >> num2;
+				switch (arrStacks[intStackIndex][i]->chrOperator)
 				{
 				case '+':   answer = num1 + num2;   break;
 				case '-':   answer = num1 - num2;   break;
@@ -333,16 +333,16 @@ void Equation::Simplify()
 				case '/':   answer = num1 / num2;   break;
 				case '^': answer = pow(num1, num2); break;
 				}
-				this->arrStacks[intStackIndex][i]->strValue = to_string((long double)answer);
-				this->arrStacks[intStackIndex][i]->chrOperator = 0;
-				this->arrStacks[intStackIndex].erase(this->arrStacks[intStackIndex].begin() + i + 2);
-				this->arrStacks[intStackIndex].erase(this->arrStacks[intStackIndex].begin() + i + 1);
+				arrStacks[intStackIndex][i]->strValue = to_string((long double)answer);
+				arrStacks[intStackIndex][i]->chrOperator = 0;
+				arrStacks[intStackIndex].erase(arrStacks[intStackIndex].begin() + i + 2);
+				arrStacks[intStackIndex].erase(arrStacks[intStackIndex].begin() + i + 1);
 			}
-			else if (this->arrStacks[intStackIndex][i]->intFunction >= UNARY_START && this->arrStacks[intStackIndex][i + 1]->chrOperator == 0 && this->arrStacks[intStackIndex][i + 1]->chrVariable == 0)
+			else if (arrStacks[intStackIndex][i]->intFunction >= UNARY_START && arrStacks[intStackIndex][i + 1]->chrOperator == 0 && arrStacks[intStackIndex][i + 1]->chrVariable == 0)
 			{
 				double num1, answer;
-				stringstream(this->arrStacks[intStackIndex][i + 1]->strValue) >> num1;
-				switch (this->arrStacks[intStackIndex][i]->intFunction)
+				stringstream(arrStacks[intStackIndex][i + 1]->strValue) >> num1;
+				switch (arrStacks[intStackIndex][i]->intFunction)
 				{
 				case LN: answer = log(num1);		break;
 				case LOG10: answer = log10(num1);	break;
@@ -361,37 +361,39 @@ void Equation::Simplify()
 				case ACOT: answer = atan(1 / num1);	break;
 				case POS_NEG: continue;
 				}
-				this->arrStacks[intStackIndex][i]->strValue = to_string((long double)answer);
-				this->arrStacks[intStackIndex][i]->intFunction = -1;
-				this->arrStacks[intStackIndex].erase(this->arrStacks[intStackIndex].begin() + i + 1);
+				arrStacks[intStackIndex][i]->strValue = to_string((long double)answer);
+				arrStacks[intStackIndex][i]->intFunction = -1;
+				arrStacks[intStackIndex].erase(arrStacks[intStackIndex].begin() + i + 1);
 			}
-			else if (this->arrStacks[intStackIndex][i]->intFunction >= 0 && this->arrStacks[intStackIndex][i]->intFunction < UNARY_START && this->arrStacks[intStackIndex][i + 1]->chrOperator == 0 && this->arrStacks[intStackIndex][i + 1]->chrVariable == 0 && this->arrStacks[intStackIndex][i + 2]->chrOperator == 0 && this->arrStacks[intStackIndex][i + 2]->chrVariable == 0)
+			else if (arrStacks[intStackIndex][i]->intFunction >= 0 && arrStacks[intStackIndex][i]->intFunction < UNARY_START && arrStacks[intStackIndex][i + 1]->chrOperator == 0 && arrStacks[intStackIndex][i + 1]->chrVariable == 0 && arrStacks[intStackIndex][i + 2]->chrOperator == 0 && arrStacks[intStackIndex][i + 2]->chrVariable == 0)
 			{
 				double num1, num2, answer;
-				stringstream(this->arrStacks[intStackIndex][i + 2]->strValue) >> num1;
-				stringstream(this->arrStacks[intStackIndex][i + 1]->strValue) >> num2;
-				switch (this->arrStacks[intStackIndex][i]->intFunction)
+				stringstream(arrStacks[intStackIndex][i + 2]->strValue) >> num1;
+				stringstream(arrStacks[intStackIndex][i + 1]->strValue) >> num2;
+				switch (arrStacks[intStackIndex][i]->intFunction)
 				{
 				case ROOT: answer = pow(num1, 1 / num2); break;
 				case LOG: answer = log(num1) / log(num2); break;
 				}
-				this->arrStacks[intStackIndex][i]->strValue = to_string((long double)answer);
-				this->arrStacks[intStackIndex][i]->intFunction = -1;
-				this->arrStacks[intStackIndex].erase(this->arrStacks[intStackIndex].begin() + i + 2);
-				this->arrStacks[intStackIndex].erase(this->arrStacks[intStackIndex].begin() + i + 1);
+				arrStacks[intStackIndex][i]->strValue = to_string((long double)answer);
+				arrStacks[intStackIndex][i]->intFunction = -1;
+				arrStacks[intStackIndex].erase(arrStacks[intStackIndex].begin() + i + 2);
+				arrStacks[intStackIndex].erase(arrStacks[intStackIndex].begin() + i + 1);
 			}
 		}
 	}
-	this->GenerateString();
+	GenerateString();
+
+	return strValue;
 }
 
 //Solves an equation with one instance of a variable
-void Equation::Solve()
+string Equation::Solve()
 {
-	this->Simplify();
+	Simplify();
 
 	int intStackIndex;
-	switch (this->enuSide)
+	switch (enuSide)
 	{
 	case Side::LEFT:	intStackIndex = LEFT_STACK;		break;
 	case Side::RIGHT:	intStackIndex = RIGHT_STACK;	break;
@@ -399,149 +401,139 @@ void Equation::Solve()
 	case Side::BOTH:	return;							break;
 	}
 
-	if (this->intVariableFrequency > 1)
+	if (intVariableFrequency > 1)
 		return;
 
-	for (int i = 0; i < (int)this->arrStacks[intStackIndex].size(); i++)
+	for (int i = 0; i < (int)arrStacks[intStackIndex].size(); i++)
 	{
 		//If operand is after the operator
-		if (this->arrStacks[intStackIndex][i]->chrOperator != 0 && this->arrStacks[intStackIndex][i + 1]->chrOperator == 0 && this->arrStacks[intStackIndex][i + 1]->intFunction == -1 && this->arrStacks[intStackIndex][i + 1]->chrVariable == 0)
+		if (arrStacks[intStackIndex][i]->chrOperator != 0 && arrStacks[intStackIndex][i + 1]->chrOperator == 0 && arrStacks[intStackIndex][i + 1]->intFunction == -1 && arrStacks[intStackIndex][i + 1]->chrVariable == 0)
 		{
-			switch (this->arrStacks[intStackIndex][i]->chrOperator)
+			switch (arrStacks[intStackIndex][i]->chrOperator)
 			{
-			case '+': this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement('-'));			break;
-			case '-': this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement('+'));			break;
-			case '*': this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement('/'));			break;
-			case '/': this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement('*'));			break;
-			case '^': this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement(ROOT, "root()")); break;
+			case '+': arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement('-'));			break;
+			case '-': arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement('+'));			break;
+			case '*': arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement('/'));			break;
+			case '/': arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement('*'));			break;
+			case '^': arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement(ROOT, "root()")); break;
 			}
-			this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin() + 1, this->arrStacks[intStackIndex][i + 1]);
-			this->arrStacks[intStackIndex].erase(this->arrStacks[intStackIndex].begin() + i + 1);
-			this->arrStacks[intStackIndex].erase(this->arrStacks[intStackIndex].begin() + i);
+			arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin() + 1, arrStacks[intStackIndex][i + 1]);
+			arrStacks[intStackIndex].erase(arrStacks[intStackIndex].begin() + i + 1);
+			arrStacks[intStackIndex].erase(arrStacks[intStackIndex].begin() + i);
 			i--;
 		}
 		//If operand is before the operator
-		else if (this->arrStacks[intStackIndex][i]->chrOperator != 0 && this->arrStacks[intStackIndex][GetBinarySecondNode(i, this->arrStacks[intStackIndex])]->chrOperator == 0 && this->arrStacks[intStackIndex][GetBinarySecondNode(i, this->arrStacks[intStackIndex])]->intFunction == -1 && this->arrStacks[intStackIndex][GetBinarySecondNode(i, this->arrStacks[intStackIndex])]->chrVariable == 0)
+		else if (arrStacks[intStackIndex][i]->chrOperator != 0 && arrStacks[intStackIndex][GetBinarySecondNode(i, arrStacks[intStackIndex])]->chrOperator == 0 && arrStacks[intStackIndex][GetBinarySecondNode(i, arrStacks[intStackIndex])]->intFunction == -1 && arrStacks[intStackIndex][GetBinarySecondNode(i, arrStacks[intStackIndex])]->chrVariable == 0)
 		{
-			switch (this->arrStacks[intStackIndex][i]->chrOperator)
+			switch (arrStacks[intStackIndex][i]->chrOperator)
 			{
-			case '+': this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement('-'));			break;
+			case '+': arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement('-'));			break;
 			case '-':
-				this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement('-'));
-				this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin() + 1, this->arrStacks[intStackIndex][GetBinarySecondNode(i, this->arrStacks[intStackIndex])]);
-				this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement('*'));
-				this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin() + 1, new EquationElement("-1"));
-				this->arrStacks[intStackIndex].erase(this->arrStacks[intStackIndex].begin() + GetBinarySecondNode(i, this->arrStacks[intStackIndex]));
-				this->arrStacks[intStackIndex].erase(this->arrStacks[intStackIndex].begin() + i);
+				arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement('-'));
+				arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin() + 1, arrStacks[intStackIndex][GetBinarySecondNode(i, arrStacks[intStackIndex])]);
+				arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement('*'));
+				arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin() + 1, new EquationElement("-1"));
+				arrStacks[intStackIndex].erase(arrStacks[intStackIndex].begin() + GetBinarySecondNode(i, arrStacks[intStackIndex]));
+				arrStacks[intStackIndex].erase(arrStacks[intStackIndex].begin() + i);
 				i--;
 				continue;
-			case '*': this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement('/'));			break;
+			case '*': arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement('/'));			break;
 			case '/':
-				this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement('/'));
-				this->arrStacks[!intStackIndex].push_back(this->arrStacks[intStackIndex][GetBinarySecondNode(i, this->arrStacks[intStackIndex])]);
-				this->arrStacks[intStackIndex].erase(this->arrStacks[intStackIndex].begin() + GetBinarySecondNode(i, this->arrStacks[intStackIndex]));
-				this->arrStacks[intStackIndex].erase(this->arrStacks[intStackIndex].begin() + i);
+				arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement('/'));
+				arrStacks[!intStackIndex].push_back(arrStacks[intStackIndex][GetBinarySecondNode(i, arrStacks[intStackIndex])]);
+				arrStacks[intStackIndex].erase(arrStacks[intStackIndex].begin() + GetBinarySecondNode(i, arrStacks[intStackIndex]));
+				arrStacks[intStackIndex].erase(arrStacks[intStackIndex].begin() + i);
 				i--;
 				continue;
-			case '^': this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement(LOG, "log()"));	break;
+			case '^': arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement(LOG, "log()"));	break;
 			}
-			this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin() + 1, this->arrStacks[intStackIndex][GetBinarySecondNode(i, this->arrStacks[intStackIndex])]);
-			this->arrStacks[intStackIndex].erase(this->arrStacks[intStackIndex].begin() + GetBinarySecondNode(i, this->arrStacks[intStackIndex]));
-			this->arrStacks[intStackIndex].erase(this->arrStacks[intStackIndex].begin() + i);
+			arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin() + 1, arrStacks[intStackIndex][GetBinarySecondNode(i, arrStacks[intStackIndex])]);
+			arrStacks[intStackIndex].erase(arrStacks[intStackIndex].begin() + GetBinarySecondNode(i, arrStacks[intStackIndex]));
+			arrStacks[intStackIndex].erase(arrStacks[intStackIndex].begin() + i);
 			i--;
 		}
 		//If Function is Unary
-		else if (this->arrStacks[intStackIndex][i]->intFunction >= UNARY_START)
+		else if (arrStacks[intStackIndex][i]->intFunction >= UNARY_START)
 		{
-			switch (this->arrStacks[intStackIndex][i]->intFunction)
+			switch (arrStacks[intStackIndex][i]->intFunction)
 			{
 			case LN:
-				this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement('^'));
-				this->arrStacks[!intStackIndex].push_back(new EquationElement(E));
+				arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement('^'));
+				arrStacks[!intStackIndex].push_back(new EquationElement(E));
 				break;
 			case LOG10:
-				this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement('^'));
-				this->arrStacks[!intStackIndex].push_back(new EquationElement("10"));
+				arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement('^'));
+				arrStacks[!intStackIndex].push_back(new EquationElement("10"));
 				break;
-			case SIN:  this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement(ASIN, "asin()"));	break;
-			case COS:  this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement(ACOS, "acos()"));	break;
-			case TAN:  this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement(ATAN, "atan()"));	break;
-			case CSC:  this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement(ACSC, "acsc()"));	break;
-			case SEC:  this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement(ASEC, "asec()"));	break;
-			case COT:  this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement(ACOT, "acot()"));	break;
-			case ABS:  this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement(POS_NEG, "+-"));		break;
+			case SIN:  arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement(ASIN, "asin()"));	break;
+			case COS:  arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement(ACOS, "acos()"));	break;
+			case TAN:  arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement(ATAN, "atan()"));	break;
+			case CSC:  arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement(ACSC, "acsc()"));	break;
+			case SEC:  arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement(ASEC, "asec()"));	break;
+			case COT:  arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement(ACOT, "acot()"));	break;
+			case ABS:  arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement(POS_NEG, "+-"));		break;
 			}
-			this->arrStacks[intStackIndex].erase(this->arrStacks[intStackIndex].begin() + i);
+			arrStacks[intStackIndex].erase(arrStacks[intStackIndex].begin() + i);
 		}
 		//If Function is Binary
-		else if (this->arrStacks[intStackIndex][i]->intFunction >= 0 && this->arrStacks[intStackIndex][i]->intFunction < UNARY_START && this->arrStacks[intStackIndex][i + 1]->chrOperator == 0 && this->arrStacks[intStackIndex][i + 1]->intFunction == -1 && this->arrStacks[intStackIndex][i + 1]->chrVariable == 0)
+		else if (arrStacks[intStackIndex][i]->intFunction >= 0 && arrStacks[intStackIndex][i]->intFunction < UNARY_START && arrStacks[intStackIndex][i + 1]->chrOperator == 0 && arrStacks[intStackIndex][i + 1]->intFunction == -1 && arrStacks[intStackIndex][i + 1]->chrVariable == 0)
 		{
-			switch (this->arrStacks[intStackIndex][i]->intFunction)
+			switch (arrStacks[intStackIndex][i]->intFunction)
 			{
 			case ROOT:
-				this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement('^'));
-				this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin() + 1, this->arrStacks[intStackIndex][i + 1]);
+				arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement('^'));
+				arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin() + 1, arrStacks[intStackIndex][i + 1]);
 				break;
 			case LOG:
-				this->arrStacks[!intStackIndex].insert(this->arrStacks[!intStackIndex].begin(), new EquationElement('^'));
-				this->arrStacks[!intStackIndex].push_back(this->arrStacks[intStackIndex][i + 1]);
+				arrStacks[!intStackIndex].insert(arrStacks[!intStackIndex].begin(), new EquationElement('^'));
+				arrStacks[!intStackIndex].push_back(arrStacks[intStackIndex][i + 1]);
 				break;
 			}
-			this->arrStacks[intStackIndex].erase(this->arrStacks[intStackIndex].begin() + i + 1);
-			this->arrStacks[intStackIndex].erase(this->arrStacks[intStackIndex].begin() + i);
+			arrStacks[intStackIndex].erase(arrStacks[intStackIndex].begin() + i + 1);
+			arrStacks[intStackIndex].erase(arrStacks[intStackIndex].begin() + i);
 		}
 	}
 
-	if (this->StackContainsVariables())
-		this->Solve();
+	if (StackContainsVariables())
+		Solve();
 
-	this->Simplify();
-}
+	Simplify();
 
-//Determines the indefinite derivative of a function, as a function
-void Equation::Differentiate()
-{
-
-}
-
-//Determines the indefinite integral of a function, as a function
-void Equation::Integrate()
-{
-
+	return strValue;
 }
 
 //Fills and parses the equation stack
 void Equation::FillStack()
 {
 	int intStackIndex, intMaxStackIndex;
-	if (this->strValue.find('=') == -1)
+	if (strValue.find('=') == -1)
 	{
 		intStackIndex = 2;
 		intMaxStackIndex = 3;
-		this->booTwoSided = false;
-		this->arrStacks[STACK].push_back(new EquationElement(this->strValue));
+		booTwoSided = false;
+		arrStacks[STACK].push_back(new EquationElement(strValue));
 	}
 	else
 	{
 		intStackIndex = 0;
 		intMaxStackIndex = 2;
-		this->booTwoSided = true;
-		this->arrStacks[LEFT_STACK].push_back(new EquationElement(this->strValue.substr(0, this->strValue.find('='))));
-		this->arrStacks[RIGHT_STACK].push_back(new EquationElement(this->strValue.substr(this->strValue.find('=') + 1)));
+		booTwoSided = true;
+		arrStacks[LEFT_STACK].push_back(new EquationElement(strValue.substr(0, strValue.find('='))));
+		arrStacks[RIGHT_STACK].push_back(new EquationElement(strValue.substr(strValue.find('=') + 1)));
 	}
 	for (intStackIndex; intStackIndex < intMaxStackIndex; intStackIndex++)
 	{
-		for (int i = 0; i < (int)this->arrStacks[intStackIndex].size(); i++)
+		for (int i = 0; i < (int)arrStacks[intStackIndex].size(); i++)
 		{
-			string strExpression = this->arrStacks[intStackIndex][i]->strValue;
+			string strExpression = arrStacks[intStackIndex][i]->strValue;
 			Optimize(strExpression);
 			int intOperatorIndex = GetOperatorIndex(strExpression);
 			if (intOperatorIndex != -1)
 			{
-				this->arrStacks[intStackIndex][i]->chrOperator = strExpression[intOperatorIndex];
-				this->arrStacks[intStackIndex].insert(this->arrStacks[intStackIndex].begin() + i + 1, new EquationElement(strExpression.substr(intOperatorIndex + 1)));
-				this->arrStacks[intStackIndex].insert(this->arrStacks[intStackIndex].begin() + i + 2, new EquationElement(strExpression.substr(0, intOperatorIndex)));
-				this->arrStacks[intStackIndex][i]->strValue = "";
+				arrStacks[intStackIndex][i]->chrOperator = strExpression[intOperatorIndex];
+				arrStacks[intStackIndex].insert(arrStacks[intStackIndex].begin() + i + 1, new EquationElement(strExpression.substr(intOperatorIndex + 1)));
+				arrStacks[intStackIndex].insert(arrStacks[intStackIndex].begin() + i + 2, new EquationElement(strExpression.substr(0, intOperatorIndex)));
+				arrStacks[intStackIndex][i]->strValue = "";
 			}
 			else
 			{
@@ -550,19 +542,19 @@ void Equation::FillStack()
 				{
 					if (strExpression.find(arrFunctions[j]) != -1)
 					{
-						this->arrStacks[intStackIndex][i]->intFunction = j;
-						this->arrStacks[intStackIndex].insert(this->arrStacks[intStackIndex].begin() + i + 1, new EquationElement(strExpression.substr(strExpression.find(arrFunctions[j]) + arrFunctions[j].length(), strExpression.length() - (strExpression.find(arrFunctions[j]) + arrFunctions[j].length()) - 1)));
-						this->arrStacks[intStackIndex][i]->strValue = arrFunctions[j] + ")";
+						arrStacks[intStackIndex][i]->intFunction = j;
+						arrStacks[intStackIndex].insert(arrStacks[intStackIndex].begin() + i + 1, new EquationElement(strExpression.substr(strExpression.find(arrFunctions[j]) + arrFunctions[j].length(), strExpression.length() - (strExpression.find(arrFunctions[j]) + arrFunctions[j].length()) - 1)));
+						arrStacks[intStackIndex][i]->strValue = arrFunctions[j] + ")";
 					}
 				}
 				for (int j = 0; j < UNARY_START; j++)
 				{
 					if (strExpression.find(arrFunctions[j]) != -1)
 					{
-						this->arrStacks[intStackIndex][i]->intFunction = j;
-						this->arrStacks[intStackIndex].insert(this->arrStacks[intStackIndex].begin() + i + 1, new EquationElement(strExpression.substr(strExpression.find(arrFunctions[j]) + arrFunctions[j].length(), intCommaIndex - (strExpression.find(arrFunctions[j]) + arrFunctions[j].length()))));
-						this->arrStacks[intStackIndex].insert(this->arrStacks[intStackIndex].begin() + i + 2, new EquationElement(strExpression.substr(intCommaIndex + 1, strExpression.length() - intCommaIndex - 2)));
-						this->arrStacks[intStackIndex][i]->strValue = arrFunctions[j] + ")";
+						arrStacks[intStackIndex][i]->intFunction = j;
+						arrStacks[intStackIndex].insert(arrStacks[intStackIndex].begin() + i + 1, new EquationElement(strExpression.substr(strExpression.find(arrFunctions[j]) + arrFunctions[j].length(), intCommaIndex - (strExpression.find(arrFunctions[j]) + arrFunctions[j].length()))));
+						arrStacks[intStackIndex].insert(arrStacks[intStackIndex].begin() + i + 2, new EquationElement(strExpression.substr(intCommaIndex + 1, strExpression.length() - intCommaIndex - 2)));
+						arrStacks[intStackIndex][i]->strValue = arrFunctions[j] + ")";
 					}
 				}
 			}
@@ -651,16 +643,16 @@ void Equation::Optimize(string& org_strInput)
 //Returns string value of equation
 string Equation::String()
 {
-	this->GenerateString();
-	return this->strValue;
+	GenerateString();
+	return strValue;
 }
 
 //Determines if stack contains operators
 bool Equation::StackContainsVariables()
 {
 	for (int intStackIndex = 0; intStackIndex < 3; intStackIndex++)
-		for (int i = 0; i < (int)this->arrStacks[intStackIndex].size(); i++)
-			if (this->arrStacks[intStackIndex][i]->chrOperator != '\0')
+		for (int i = 0; i < (int)arrStacks[intStackIndex].size(); i++)
+			if (arrStacks[intStackIndex][i]->chrOperator != '\0')
 				return true;
 	return false;
 }
@@ -668,22 +660,22 @@ bool Equation::StackContainsVariables()
 //Generates the string value of equation
 void Equation::GenerateString()
 {
-	this->strValue = "";
+	strValue = "";
 
 	for (int intStackIndex = 0; intStackIndex < 3; intStackIndex++)
 	{
-		for (int i = 0; i < (int)this->arrStacks[intStackIndex].size(); i++)
+		for (int i = 0; i < (int)arrStacks[intStackIndex].size(); i++)
 		{
 			if (intStackIndex == RIGHT_STACK && i == 0)
-				this->strValue += "=";
-			if (this->arrStacks[intStackIndex][i]->strValue == "")
+				strValue += "=";
+			if (arrStacks[intStackIndex][i]->strValue == "")
 			{
 				stringstream ss;
-				ss << this->arrStacks[intStackIndex][i]->chrOperator;
-				this->strValue += ss.str();
+				ss << arrStacks[intStackIndex][i]->chrOperator;
+				strValue += ss.str();
 			}
 			else
-				this->strValue += this->arrStacks[intStackIndex][i]->strValue;
+				strValue += arrStacks[intStackIndex][i]->strValue;
 		}
 	}
 }
