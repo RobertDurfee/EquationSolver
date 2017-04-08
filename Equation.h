@@ -30,19 +30,19 @@ private:
 
 Equation::Equation(std::string equationString)
 {
-	if (IsWellFormed(equationString))
+	if (!HasInvalidCharacters(equationString))
 	{
-		if (!HasInvalidCharacters(equationString))
+		if (IsWellFormed(equationString))
 		{
 			RemoveSpaces(&equationString);
 
 			equationTree = Parse(equationString);
 		}
 		else
-			throw equationContainsInvalidCharacter;
+			throw equationNotWellFormed;
 	}
 	else
-		throw equationNotWellFormed;
+		throw equationContainsInvalidCharacter;
 }
 
 void Equation::Simplify()
